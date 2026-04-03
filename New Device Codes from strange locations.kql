@@ -1,0 +1,12 @@
+let known_device_code_users = SigninLogs
+| where TimeGenerated between (ago(90d) .. ago(1d))
+| where AuthenticationProtocol == "deviceCode"
+| where ResultType == 0
+| distinct UserPrincipalName;
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where AuthenticationProtocol == "deviceCode"
+| where ResultType == 0
+| where UserPrincipalName !in (known_device_code_users)
+| project TimeGenerated, UserPrincipalName, AppDisplayName, IPAddress, Location = tostring(LocationDetails.city), Country = tostring(LocationDetails.countryOrRegion), DeviceDetail
+| where Country != "GB"
