@@ -1,6 +1,8 @@
+
+
 // 1. Set the UPN you want to investigate
 let targetUPN = "<UPN>";
-// 2. Get the user's actual email address from IdentityInfo, 30 days to give room for older entries
+// 2. Get the user's actual email address from IdentityInfo
 let lookback = ago(30d);
 let activity_lookback = ago(2d);
 let userEmail =
@@ -14,13 +16,18 @@ let Signins =
 SigninLogs
 | where TimeGenerated >= activity_lookback
 | where UserPrincipalName =~ targetUPN
+| extend SigninDetails = pack(
+        "DeviceDetail", DeviceDetail,
+        "UserAgent", UserAgent,
+        "AuthenticationDetails", AuthenticationDetails
+    )
 | project TimeGenerated,
           Source = "SigninLogs",
           User = UserPrincipalName,
           IP = IPAddress,
           App = AppDisplayName,
           Action = ResultType,
-          Details = "";
+          Details = tostring(SigninDetails);
 // 4. Cloud App activity (email-based)
 let CloudApps =
 CloudAppEvents
@@ -40,15 +47,14 @@ OfficeActivity
 | where TimeGenerated >= activity_lookback
 | extend NormalizedUser = coalesce(UserId, UserKey)
 | where NormalizedUser =~ targetUPN or NormalizedUser in (userEmail)
-| extend NormalizedIP = coalesce(ClientIP, Client_IPAddress, ActorIpAddress,
-                                 tostring(parse_json(Parameters)[0].Value))
+| extend NormalizedIP = coalesce(ClientIP, Client_IPAddress, ActorIpAddress)
 | project TimeGenerated,
           Source = "OfficeActivity",
           User = NormalizedUser,
           IP = NormalizedIP,
           App = OfficeWorkload,
           Action = Operation,
-          Details = tostring(Parameters);
+          Details = tostring(Folders);
 // 6. Device network activity (email-based)
 let DeviceNet =
 DeviceNetworkEvents
@@ -77,3 +83,4 @@ UrlClickEvents
 // 8. Combine all results
 union Signins, CloudApps, Office, DeviceNet, UrlClicks
 | sort by TimeGenerated desc
+
