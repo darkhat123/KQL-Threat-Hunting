@@ -1,0 +1,25 @@
+let iocs = dynamic(["models.litellm.cloud", "checkmarx.zone"]);
+union DeviceEvents, DeviceNetworkEvents, UrlClickEvents, DeviceProcessEvents
+| where RemoteUrl has_any(iocs) or Url has_any(iocs) or InitiatingProcessCommandLine has_any(iocs) or ProcessCommandLine has_any(iocs)
+
+let litellm_commands = dynamic([
+    "docker pull ghcr.io/berriai/litellm:main-latest",
+    "pip install 'litellm[proxy]'",
+    "pip install litellm",
+    "curl -fsSL https://raw.githubusercontent.com/BerriAI/litellm/main/scripts/install.sh | sh"
+]);
+DeviceProcessEvents
+| where ProcessCommandLine has_any (litellm_commands)
+    or InitiatingProcessCommandLine has_any (litellm_commands)
+
+DeviceProcessEvents
+| where ProcessCommandLine has "litellm"
+   or InitiatingProcessCommandLine has "litellm"
+
+DeviceFileEvents
+| where FileName contains "tpcp.tar.gz"
+
+DeviceTvmSoftwareVulnerabilities
+| where SoftwareName contains "python"
+      and SoftwareVersion contains "litellm"
+
