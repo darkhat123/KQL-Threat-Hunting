@@ -1,0 +1,29 @@
+let lookback = ago(7d);
+let safeurl = dynamic([<list_of_safe_domains]);
+let SpUrls = EmailUrlInfo
+| where TimeGenerated >= lookback
+| where not(Url has_any (safeurl))
+| join kind=inner EmailEvents on NetworkMessageId
+| where SenderFromDomain !in (<knownSafedomains>)
+| where Url has "-my."
+| where UrlDomain != "teams.microsoft.com"
+| join kind=inner UrlClickEvents on Url
+| distinct Url1;
+let clicked =UrlClickEvents
+| where TimeGenerated >= lookback
+| where Url in (SpUrls)
+| distinct AccountUpn;
+let received_code = EmailEvents
+| where TimeGenerated >= lookback
+| where RecipientEmailAddress in (clicked) and Subject has " Verification code"
+| summarize email_code = min(TimeGenerated) by RecipientEmailAddress
+| join kind=inner  IdentityInfo on $left.RecipientEmailAddress == $right.MailAddress
+| project AccountUPN, email_code;
+SigninLogs
+| where TimeGenerated >= lookback
+| join kind=inner received_code on $left.UserPrincipalName == $right.AccountUPN
+| where TimeGenerated between (email_code .. (email_code + 30m)) 
+| where Location != "GB"
+| where UserPrincipalName != ""
+| where ResultType == 0
+| summarize arg_max(TimeGenerated, email_code, IPAddress, ResultType) by UserPrincipalName
