@@ -1,0 +1,30 @@
+//Installation methods 
+DeviceProcessEvents
+| where ProcessCommandLine has_any("npm install axios" , "npm i axios", "yarn add axios", "git clone https://github.com/axios/axios.git", "gh repo clone axios/axios") or InitiatingProcessCommandLine has_any ("npm install axios" , "npm i axios", "yarn add axios", "git clone https://github.com/axios/axios.git", "gh repo clone axios/axios")
+ 
+//Dropped Files
+DeviceFileEvents
+| where FolderPath has_any("node_modules/plain-crypto-js") or FileName  has_any("%PROGRAMDATA%\\wt.exe", "/tmp/ld.py", "/Library/Caches/com.apple.act.mond")
+ 
+ 
+//C2 domains
+let IOCs = dynamic(["142.11.206.73", "sfrclak.com"]);
+union DeviceNetworkEvents, DeviceEvents, DeviceFileEvents
+| where RemoteIP has_any (IOCs)
+    or RemoteUrl has_any (IOCs)
+    or FileOriginUrl has_any (IOCs)
+    or FileOriginReferrerUrl has_any (IOCs)
+    or FileOriginIP has_any (IOCs)
+ 
+ 
+//Broader installs
+DeviceProcessEvents
+| where (ProcessCommandLine has "npm" or InitiatingProcessCommandLine has "npm")
+| where (ProcessCommandLine has_any("install", "ci") or InitiatingProcessCommandLine has_any("install", "ci"))
+| where (ProcessCommandLine has "axios" or InitiatingProcessCommandLine has "axios")
+ 
+//Indirect Axios Installs
+DeviceFileEvents
+| where FolderPath has "node_modules"
+| where FolderPath has "axios"
+ 
