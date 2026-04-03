@@ -1,0 +1,21 @@
+let mailboxes = dynamic([ <list_of_shared_maliboxes>]);
+let lookback = ago(3d);
+let accessed =
+CloudAppEvents
+| where TimeGenerated >= lookback
+| where ActionType == "MailItemsAccessed"
+| extend raw = RawEventData
+| where raw.MailboxOwnerUPN has_any(mailboxes)
+| mv-expand Folders = raw.Folders
+| mv-expand FolderItems = Folders.FolderItems
+| where FolderItems.Subject has "RE"
+| project 
+    UserId = raw.UserId,
+    MailboxOwner = raw.MailboxOwnerUPN,
+    Subject = FolderItems.Subject,
+    MessageId = FolderItems.InternetMessageId,
+    FolderPath = Folders.Path,
+    AccessTime = TimeGenerated
+| extend RecipientLower = tostring(tolower(UserId))
+| summarize arg_min(AccessTime, *) by tostring(Subject);
+accessed
