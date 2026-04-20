@@ -1,0 +1,17 @@
+// MFA Device Change Check
+ // ============================
+ // Parameters:
+ let nhsAccount = "USERPRINCIPALNAME";
+ // ============================
+ AuditLogs
+ | where TimeGenerated > ago(90d)
+ | where OperationName in~ ("Admin registered security info", "Admin updated security info", "Admin deleted security info", "User registered security info", "User changed default security info", "User deleted security info")
+ | mv-expand TargetResources
+ | evaluate bag_unpack(TargetResources)
+ | where userPrincipalName contains nhsAccount
+ | mv-expand InitiatedBy
+ | evaluate bag_unpack(InitiatedBy)
+ | extend InitiatingIP = tostring(user.ipAddress)
+ | extend InitiatingAccount = tostring(user.userPrincipalName)
+ | project TimeGenerated, OperationName, userPrincipalName, InitiatingAccount, InitiatingIP, ResultDescription, Result
+ | sort by TimeGenerated desc
