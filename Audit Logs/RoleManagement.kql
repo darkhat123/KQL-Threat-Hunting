@@ -1,0 +1,8 @@
+AuditLogs 
+ | where TimeGenerated > ago(90d) 
+ | where Category contains "RoleManagement" 
+ | where InitiatedBy contains "" 
+ | extend target=TargetResources[2].userPrincipalName 
+ | where target contains "" 
+ | project TimeGenerated, OperationName, InitiatedBy.user.userPrincipalName, ResultReason, TargetResources[0].displayName, target 
+ | summarize count() by bin(TimeGenerated, 1d), tostring(TargetResources_0_displayName) 
