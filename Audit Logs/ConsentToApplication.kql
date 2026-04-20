@@ -1,0 +1,7 @@
+AuditLogs 
+ | where TimeGenerated > ago(90d) 
+ // | where InitiatedBy contains "" 
+ | where OperationName contains "Consent to application" 
+ | extend target=parse_json(TargetResources[0].displayName) 
+ | extend user=parse_json(InitiatedBy.user.userPrincipalName) 
+ | project TimeGenerated, OperationName, user, target 
