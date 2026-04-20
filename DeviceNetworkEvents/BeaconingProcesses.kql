@@ -1,0 +1,6 @@
+DeviceNetworkEvents 
+| where RemoteIP contains "" 
+| where LocalIP contains "" 
+| where TimeGenerated > ago(90d) 
+| project TimeGenerated, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, InitiatingProcessFolderPath, RemoteUrl, RemoteIP 
+| summarize count() by bin( TimeGenerated, 1d), DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, RemoteIP, RemoteUrl 
