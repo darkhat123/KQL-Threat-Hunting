@@ -1,0 +1,4 @@
+let MaliciousUrls = dynamic(["URL1.com", "URL2.com"]);
+DeviceNetworkEvents
+| where RemoteUrl in (MaliciousUrls)
+| project Timestamp, RemoteUrl, , DeviceName (etc…) 
