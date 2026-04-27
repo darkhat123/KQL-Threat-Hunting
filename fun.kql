@@ -1,0 +1,20 @@
+//radius and diameter of a circle
+let radius = 5.0; 
+print Area = pi() * pow(radius, 2) // area
+print circumference = pi() * (radius * 2) //radius (delete one)
+
+//workout hypotenuse
+let A = 3; let B = 4;
+print C = sqrt(pow(A, 2) + pow(B, 2))
+
+// workout terminal velocity of a skydiver at a set weight
+let Gravity = 9.80665;
+print 
+    ObjectName = "Skydiver",
+    MassKg = 84.0,
+    DragCoefficient = 1.0,
+    AreaM2 = 0.7,
+    AirDensity = real(null)
+| extend AirDensity = iff(isnull(AirDensity), 1.225, AirDensity)
+| extend ["TerminalVelocity (m/s)"] = sqrt((2.0 * MassKg * Gravity) / (AirDensity * DragCoefficient * AreaM2))
+| project ObjectName, ['TerminalVelocity (m/s)']
