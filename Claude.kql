@@ -1,0 +1,15 @@
+//searches for and audits claude workers in the env 
+let LookBack = 30d;
+let CoworkDevice =
+DeviceNetworkEvents
+| where TimeGenerated > ago(LookBack)
+| where ActionType == "ConnectionSuccess"
+| where InitiatingProcessFileName has "cowork-svc"
+| extend DeviceName, split(DeviceName, ".")[0]
+| distinct tostring(DeviceName_0);
+SigninLogs
+| where TimeGenerated > ago(LookBack)
+| where ResultType == "0"
+| where AppId == "08ad6f98-a4f8-4635-bb8d-f1a3044760f0" or AppId == "07c030f6-5743-41b7-ba00-0a6e85f37c17"
+| extend displayName = tostring(parse_json(DeviceDetail).displayName)
+| where displayName has_any(CoworkDevice)
