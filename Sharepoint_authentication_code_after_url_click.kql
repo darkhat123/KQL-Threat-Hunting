@@ -1,0 +1,33 @@
+// Allows analysts to see if a user recevied a sharepoint code within proximity of clicking a sharepoint phishing link
+let email_window = ago(1d);
+let IOCS = dynamic(["<url>"
+]);
+let clicked =
+union DeviceEvents, DeviceNetworkEvents, UrlClickEvents, DeviceProcessEvents
+| where RemoteUrl has_any(IOCS)
+   or Url has_any(IOCS)
+   or InitiatingProcessCommandLine has_any(IOCS)
+   or ProcessCommandLine has_any(IOCS)
+| where ActionType == "ClickAllowed"
+| distinct AccountUpn;
+EmailEvents
+| where Timestamp >= email_window
+| where RecipientEmailAddress in (clicked)
+| where Subject contains "Verification code"
+| extend
+    EmailReceivedTime = Timestamp,
+    RecipientLower = tolower(RecipientEmailAddress)
+| join kind=inner (
+    IdentityInfo
+    | where Timestamp >= ago(180d)
+    | extend EmailLower = tolower(EmailAddress)
+) on $left.RecipientLower == $right.EmailLower
+| summarize
+    arg_max(EmailReceivedTime, *)
+    by UPN = tolower(AccountUpn)
+| project
+    UPN,
+    RecipientEmailAddress,
+    EmailReceivedTime,
+    Subject,
+    NetworkMessageId
