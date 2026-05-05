@@ -1,0 +1,21 @@
+let mailboxes = dynamic([ "UPNS's"]);
+let lookback = ago(7d);
+let accessed =
+CloudAppEvents
+| where IPAddress == "<IP>"
+| where TimeGenerated >= lookback
+// | where ActionType == "MailItemsAccessed"
+| extend raw = RawEventData
+// | where raw.MailboxOwnerUPN has_any(mailboxes)
+| mv-expand Folders = raw.Folders
+| mv-expand FolderItems = Folders.FolderItems
+| project 
+    UserId = raw.UserId,
+    MailboxOwner = raw.MailboxOwnerUPN,
+    Subject = FolderItems.Subject,
+    MessageId = FolderItems.InternetMessageId,
+    FolderPath = Folders.Path,
+    AccessTime = TimeGenerated
+| extend RecipientLower = tostring(tolower(UserId))
+| summarize arg_min(AccessTime, *) by tostring(Subject);
+accessed
