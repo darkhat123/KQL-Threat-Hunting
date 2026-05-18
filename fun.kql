@@ -18,3 +18,7 @@ print
 | extend AirDensity = iff(isnull(AirDensity), 1.225, AirDensity)
 | extend ["TerminalVelocity (m/s)"] = sqrt((2.0 * MassKg * Gravity) / (AirDensity * DragCoefficient * AreaM2))
 | project ObjectName, ['TerminalVelocity (m/s)']
+
+//fibonacci sequence
+range n from 0 to 100 step 1
+| extend fibonacci = tolong(round((pow((1 + sqrt(5)) / 2, n) - pow((1 - sqrt(5)) / 2, n)) / sqrt(5)))
