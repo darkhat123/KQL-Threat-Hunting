@@ -1,0 +1,15 @@
+let CreatorIP = "";
+let UsedOnIP = "";
+let Device = "";
+let AlertDate = datetime(); //YYYY-MM-DD
+DeviceNetworkEvents
+| where Timestamp >= startofday(AlertDate) and Timestamp < startofday(AlertDate + 1d)
+| where DeviceName contains (Device)
+| project Timestamp, DeviceId, DeviceName, LocalIP, ReportId, InitiatingProcessAccountName
+| sort by DeviceId asc, Timestamp asc
+| serialize
+| extend PreviousIP = prev(LocalIP),
+         PreviousDevice = prev(DeviceId)
+| where DeviceId == PreviousDevice
+| where LocalIP == (CreatorIP) and PreviousIP == (UsedOnIP)
+| where LocalIP != PreviousIP
