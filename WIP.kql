@@ -1,0 +1,44 @@
+
+
+let clicked_upns=UrlClickEvents
+| where Timestamp > ago(30d)
+| where ActionType == "ClickAllowed"
+| extend emails = tolower(AccountUpn)
+| summarize arg_min(Timestamp, *) by emails
+| project emails, clickedTime= Timestamp, UrlChain, NetworkMessageId
+| join kind=inner(
+    EmailEvents
+    | extend lowerreceipient = tolower(RecipientEmailAddress)
+    | where IsFirstContact = True
+    | where UrlCount > 0
+    | where EmailDirection == "Inbound"
+    | summarize arg_max(Timestamp, SenderFromAddress, lowerreceipient) by Subject
+) on $left.emails == $right.lowerreceipient
+| project emails, clickedTime= Timestamp, UrlChain, NetworkMessageId, SenderFromAddress
+| join kind=inner (
+    IdentityInfo
+    | where Timestamp > ago(30d)
+    | extend idmails = tolower(EmailAddress)
+    | summarize arg_max(Timestamp, idmails) by AccountUpn
+) on $left.emails == $right.idmails
+| project Account =tolower(AccountUpn), clickedTime, UrlChain;
+let suspect_session =clicked_upns
+| join kind=inner (
+    EntraIdSignInEvents
+    | where Timestamp > ago (30d)
+    | where ErrorCode == 0
+    | extend loweraccount = tolower(AccountUpn)
+    | extend sign_intime = Timestamp
+) on $left.Account == $right.loweraccount
+| where sign_intime between (clickedTime .. (clickedTime +2m))
+| project SessionId, clickedTime, sign_intime, UserAgent, IPAddress;
+suspect_session
+| join kind=inner EntraIdSignInEvents on SessionId
+| where Timestamp between (sign_intime .. (sign_intime + 5m ))
+| where ErrorCode == 0
+| where Country != "GB"
+| where isempty(DeviceTrustType)
+| where IPAddress != IPAddress1;
+suspect_session
+
+
