@@ -1,0 +1,6 @@
+SigninLogs
+| where ResultType == 0                         // 0 usually indicates success
+| where ConditionalAccessStatus == "success"   // optional: filter by CA policies
+| where AuthenticationRequirement in ("transfer", "federated")  // example field if your logs contain this
+| project TimeGenerated, UserPrincipalName, AppDisplayName, ResourceDisplayName, ClientAppUsed, IPAddress, AuthenticationMethodsUsed
+| order by TimeGenerated desc
