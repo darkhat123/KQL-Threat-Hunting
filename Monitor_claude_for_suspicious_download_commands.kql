@@ -1,0 +1,4 @@
+DeviceProcessEvents
+| where InitiatingProcessCommandLin contains "claude" or ProcessCommandLine contains "claude"
+| where InitiatingProcessCommandLine has_any( "Invoke-Expression", "IEX", "iex", "Invoke-WebRequest", "IWR", "iwr", "Invoke-RestMethod", "IRM", "irm", "System.Net.WebClient" "DownloadFile") 
+or ProcessCommandLine has_any( "Invoke-Expression", "IEX", "iex", "Invoke-WebRequest", "IWR", "iwr", "Invoke-RestMethod", "IRM", "irm", "System.Net.WebClient" "DownloadFile")
