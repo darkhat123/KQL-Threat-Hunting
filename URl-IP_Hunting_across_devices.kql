@@ -1,0 +1,55 @@
+//Looking for sign-ins following a successful connection to a malicious URL
+let IOCS = dynamic([
+    "sa.com"
+]);
+let search_windows = ago(30d);
+let correlation_window = 15m;
+let connected =
+    DeviceNetworkEvents
+    | where Timestamp > search_windows
+    | where ActionType == "ConnectionSuccess"
+    | where RemoteUrl has_any(IOCS)
+        or InitiatingProcessCommandLine has_any(IOCS)
+    | where isnotempty(InitiatingProcessAccountUpn)
+    | project
+        AccountUpn = tolower(InitiatingProcessAccountUpn),
+        click_time = Timestamp,
+        DeviceId,
+        RemoteUrl;
+connected
+| join kind=inner (
+    EntraIdSignInEvents
+    | where Timestamp > search_windows
+    | where isnotempty(AccountUpn)
+    | project
+        AccountUpn = tolower(AccountUpn),
+        sign_in_time = Timestamp,
+        IPAddress,
+        Application,
+        LogonType,
+        ErrorCode,
+        Country,
+        DeviceTrustType,
+        DeviceName,
+        EntraIdDeviceId
+) on AccountUpn
+| where sign_in_time between (click_time .. (click_time + correlation_window))
+| where not(ipv4_is_match(IPAddress, "0.0.0.0/0")) or Country != "GB"
+| where isempty(EntraIdDeviceId)
+| extend MinutesAfterClick = datetime_diff('second', sign_in_time, click_time) / 60.0
+| project
+    AccountUpn,
+    click_time,
+    sign_in_time,
+    MinutesAfterClick,
+    DeviceId,
+    RemoteUrl,
+    IPAddress,
+    Application,
+    LogonType,
+    ErrorCode,
+    Country,
+    DeviceName,
+    DeviceTrustType,
+    EntraIdDeviceId
+| order by click_time desc
