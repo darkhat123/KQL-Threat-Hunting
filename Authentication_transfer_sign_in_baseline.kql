@@ -1,6 +1,15 @@
+// Discover any sign-ins related to authentication transfer that were successful
 SigninLogs
 | where ResultType == 0                         // 0 usually indicates success
 | where ConditionalAccessStatus == "success"   // optional: filter by CA policies
 | where AuthenticationRequirement in ("transfer", "federated")  // example field if your logs contain this
 | project TimeGenerated, UserPrincipalName, AppDisplayName, ResourceDisplayName, ClientAppUsed, IPAddress, AuthenticationMethodsUsed
 | order by TimeGenerated desc
+
+// Find any authentication transfer login attempts, determine their session and look for any successful logins
+let suspectsessions = SigninLogs
+| where OriginalTransferMethod contains "authenticationTransfer"
+| distinct SessionId;
+SigninLogs
+| where SessionId has_any (suspectsessions)
+| where ResultType == 0
