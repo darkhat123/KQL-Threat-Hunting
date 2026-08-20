@@ -1,0 +1,13 @@
+
+// Identify any alert-ids that have been posted, this will be used to find all alerts that havent posted 
+let alert_emails=EmailEvents
+| where SenderFromAddress has_any("azure-noreply@microsoft.com", "defender-noreply@microsoft.com") and Subject contains "Microsoft 365 Defender has detected a security threat"
+| distinct NetworkMessageId;
+let posted_alerts = EmailUrlInfo
+| where Url startswith "https://security.microsoft.com/incidents/byalert?alertId"
+| distinct Url
+| extend Alert_ids = parse_url(Url)
+| extend Alerts = Alert_ids.['Query Parameters']["alertId"]
+| project Alerts;
+SecurityAlert
+| where SystemAlertId !in (posted_alerts) and AlertName has_any("brute-force", "pass-the-ticket", "ldap")
