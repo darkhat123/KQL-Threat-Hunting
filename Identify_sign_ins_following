@@ -1,0 +1,22 @@
+//Identify users who received a known phishing email and look for low hanging fruit such as non-gb location or ipv6 logins, this will typically have no device id or associated name
+let emailed =EmailEvents
+| where SenderFromAddress contains "Sender" and Subject contains "Subject" 
+| extend emails = tolower(RecipientEmailAddress)
+| project emails, Email_time=Timestamp
+| join kind=inner (
+    IdentityInfo
+    | where Timestamp > ago(30d)
+    | extend idmails = tolower(EmailAddress)
+    | extend Account = tolower(AccountUpn)
+    | summarize arg_max(Timestamp, idmails) by Account
+) on $left.emails == $right.idmails
+| project Email_time, Account
+| join kind=inner (
+    EntraIdSignInEvents
+    | where ErrorCode == 0
+    | extend loweraccount = tolower(AccountUpn)
+    | where ipv6_is_match(IPAddress, "*") or Country != "GB"
+    | where isempty(EntraIdDeviceId) or isempty(DeviceName)
+) on $left.Account == $right.loweraccount
+| where Timestamp > Email_time;
+emailed
