@@ -1,0 +1,398 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Initial triage - Investigate the URL or payload using dynamic/Static analysis\n---\n\nIn this phase we have likely received notification of a Malicious Email campaign from the following sources\n1. Reported by the user as malicious - Quarantine, Notification via user or manager\n2. Identified via a potentially malicious URL click detected incident\n3. Threat hunting\n\n\nAtleast one of the following details are required at a minimum to identify the malicious Email campaign\n1. SenderFromAddress - Identifies the exact malicious sender already detected\n2. Subject - Identifies the exact Subject of the email already detected\n3. URL - Can be used to identify the singular email campaign, but also allows detection of other Email campaigns\n4. Attachment Name -Can be used to identify the singular email campaign, but also allows detection of other Email campaigns\n\n## Detemrine if the detected payload is malicious\nBefore any effort is focused on looking for the specific email campaign, blocking the relevant IOC's, remediating accounts and purging all remaining artefacts it is essential to get insight into the layout of the malicious payload both for understanding its contacted endpoints and to understand how the user sees the email and how they are manipulated into connection to these malicious endpoints.\n\nThere are two main ways to analyse the affected assets, which include static analysis utilising popular repuation sites, this typically requires the IOC being already detected and reported. Or we have the option to utilise dynamic analysis with sandboxes. The second option is the preferred route as it shows the behaviour surrounding the payload and allows real time analysis of the potentially malicious IOC\n\n### Static analysis\n1. Malicious URL - copy and paste into Virustotal\n2. Malicious File - copy and paste into hybrid analysis\n\n### Dynamic analysis\n\n#### Option 1: Download the Zipped email with an appropriate password and copy into the windows sandboxes (Required with malicious Attachments)\n\n#### Option 2: Paste the link directly into the sandbox browser (Do not paste in regular browser, defang until within the sandbox)\n\n## Identify the scope of the malicious email campaign\nThe immediate necessary triage requires identification of the detected email. This allows us to focus on closing the specific incident and reducing its blast radius, with the identification of the malicious payload the following can be quickly blocked on all managed infrastructure\n1. Connections to malicious URL's via managed devices\n2. Further emails containing the malicious payload from reaching users\n3. The download and execution of known malicious files on managed devices\n\nThis accounts for the majority of the connections that will be established during these scenarios and focuses on preventing any further connections or emails utilising the detected IOC's. However this is not a retroactive filtering process. \n\nImplementing a block in TABL ensures that any emails with the identified IOC's is not accepted and subsequently dropped or quarantined. However emails already within users inbox's with these known malicious IOC's are not automatically removed unless they are strictly identified via  intelligence led threat hunting.\n\n\n## Blind Spots\nThe nightmare scenario that can potentially bypass all of the controls in place once the specific email campaign is as follows.\n\n1. Email is sitting in a users inbox with the malicious URL variant\n2. User is able to access this email via an unmanaged device\n3. Users opens the email and is led to the credential harvester/Phishing technique\n4. Their click is logged in safelinks but not blocked as this is not added to TABL or is no longer blocked\n5. They are redirected to the final stage but no telemetry exists due to the device being unmanaged\n\n\n\nIn this instance the only real identification of a compromise of a users account will be discovered at the time of their sign-in. This may be blocked with CA but if the attackers connection mimicks the users closely then this will blend in as a normal sign-in for the user.\n\nAt this point only once the attackers behaviour deviates from the users norm will there be any further alerts raised to SOC.\n\n### Mitigations to prevent blindspots.\n\nAs discussed the two main ways that a url is still allowed via safelinks is if it is not currently in TABL whether that is due to not yet being confgured or the block expiry has passed. In our scenario links are blocked and set to never expire unless they are explicity requested to be removed and the risk is accepted. So the only time when there is a chance for unmanaged devices to not be blocked is before TABL is configured. This means that in scenarios where only the initial link is detected for the user that precautions should be taken to neutralise any threats by remediating their account\n\n## Workflow to complete full and informed investigation\nhttps://learn.microsoft.com/en-us/security/operations/incident-response-playbook-phishing#workflow"
+      },
+      "name": "text - 2"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Identifying the specific Email\r\nThe ideal scenario here is to have both the subject and sender address to identify the exact email campaign"
+      },
+      "name": "text - 3"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "d641fd70-db40-4b4d-bc08-6b1e8b825aee",
+            "version": "KqlParameterItem/1.0",
+            "name": "SenderFromAddress",
+            "type": 1,
+            "query": "",
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces",
+            "value": "microsoft.com",
+            "label": "Sender"
+          },
+          {
+            "id": "f8407a35-dea9-46c2-a18b-f3295bbe3d1d",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subject",
+            "type": 1,
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": ""
+          },
+          {
+            "id": "029be300-3448-4940-868b-93eb1d6c7c5c",
+            "version": "KqlParameterItem/1.0",
+            "name": "Lookback",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 300000
+                },
+                {
+                  "durationMs": 900000
+                },
+                {
+                  "durationMs": 1800000
+                },
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 259200000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2419200000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 5184000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ]
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": {
+              "durationMs": 7776000000
+            }
+          }
+        ],
+        "style": "above",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - 2"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "EmailEvents\n| where Timestamp {Lookback}\n| where (isempty(\"{SenderFromAddress}\") or SenderFromAddress contains \"{SenderFromAddress}\")\n| where (isempty(\"{Subject}\") or Subject contains \"{Subject}\")\n| where EmailDirection in (\"Inbound\", \"IntraOrg\")\n| project Timestamp, SenderFromAddress, Subject, RecipientEmailAddress, DeliveryAction, NetworkMessageId\n| order by Timestamp desc",
+        "size": 1,
+        "timeContext": {
+          "durationMs": 604800000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 2"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Identifying the distinct interactions with the malicious campaign - Email only - Initial Link\r\nWith knowledge of all of the malicious Emails we can quickly identify any interaction via collaboration tools utilising the NetworkMessageID of the Email. This is consistently logged in UrlClickEvents and is used to identify the user that clicked the link from the specific Email.\r\n\r\nThe total number of clicks via email can be identified using the following:\r\n\r\n1. Finding all relevant emails using the above query\r\n2. Feeding their networkmessageids into the UrlClickEvents table\r\n3. Identifying the distinct user accounts\r\n\r\nThis will however not show any URL clicks from any other collaboration tools as the networmessageid is for email only. Teams and sharepoint interactions are not logged and subsequently not identified\r\n"
+      },
+      "name": "text - 4"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let bad =EmailEvents\r\n| where Timestamp {Lookback}\r\n| where (isempty(\"{SenderFromAddress}\") or SenderFromAddress contains \"{SenderFromAddress}\")\r\n| where (isempty(\"{Subject}\") or Subject contains \"{Subject}\")\r\n| where EmailDirection in (\"Inbound\", \"IntraOrg\")\r\n| distinct NetworkMessageId;\r\nUrlClickEvents\r\n| where Timestamp {Lookback}\r\n| where NetworkMessageId in (bad)",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 8"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Identifying all interactions with the malicious campaign - All collaboration tools - Inital Link\r\n\r\nBefore we can identify all clicks we must ensure to identify the URL.\r\n\r\nWith this we simply pass this to the UrlClickEvents and determine if any users interacted with the specific link\r\n\r\n"
+      },
+      "name": "text - 5"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "2778d0f0-57e4-464a-af16-d07d78d2a20e",
+            "version": "KqlParameterItem/1.0",
+            "name": "URL",
+            "type": 1,
+            "isRequired": true,
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": "microsoft.com"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - 6"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "UrlClickEvents\r\n| where Url has \"{URL}\"\r\n| project Timestamp, AccountUpn, AppName, ActionType, Url",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 7"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Identifying all interactions with the malicious campaign - All collaboration tools - Inital Link - Distinct Users"
+      },
+      "name": "text - 10"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "UrlClickEvents\r\n| where Url has \"{URL}\"\r\n| project Timestamp, AccountUpn, AppName, ActionType, Url\r\n| distinct AccountUpn\r\n\r\n",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 9"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "# Final stage payload investigation stage"
+      },
+      "name": "text - 19"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "b95df0b7-3b26-449d-aef0-081e5ff0ae99",
+            "version": "KqlParameterItem/1.0",
+            "name": "FinalLink",
+            "type": 1,
+            "isRequired": true,
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": "microsoft.com"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - 13"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Identify all connections to the known malicious final stage URL"
+      },
+      "name": "text - 20"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "DeviceNetworkEvents\r\n// Filter for any browsers opening a URL in their process command line or look directly at the remote url contacted\r\n| where InitiatingProcessCommandLine contains \"{FinalLink}\" or RemoteUrl contains \"{FinalLink}\"\r\n// Filter for successful connections\r\n| where ActionType == \"ConnectionSuccess\"\r\n// Only show non system/service related connections\r\n| where isnotempty(InitiatingProcessAccountUpn)",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 21"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Utilise the list of known initial link clicks to feed into the devicenetworkevents table to identify any connections to the second stage payload that were from the original link\r\n\r\n"
+      },
+      "name": "text - 11"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let initial_click =UrlClickEvents\r\n| where Url has \"{URL}\"\r\n| project Timestamp, AccountUpn, AppName, ActionType, Url\r\n| distinct AccountUpn;\r\nDeviceNetworkEvents\r\n// Filter for any browsers opening a URL in their process command line or look directly at the remote url contacted\r\n| where InitiatingProcessCommandLine contains \"{FinalLink}\" or RemoteUrl contains \"{FinalLink}\"\r\n// Filter for successful connections\r\n| where ActionType == \"ConnectionSuccess\"\r\n// Only show non system/service related connections\r\n| where isnotempty(InitiatingProcessAccountUpn)\r\n| where InitiatingProcessAccountUpn in (initial_click)",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 12"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Utilise the list of known initial link clicks to feed into the devicenetworkevents table to identify any connections to the second stage payload that werent from this original link \r\n"
+      },
+      "name": "text - 14"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let initial_click =UrlClickEvents\r\n| where Url has \"{URL}\"\r\n| project Timestamp, AccountUpn, AppName, ActionType, Url\r\n| distinct AccountUpn;\r\nDeviceNetworkEvents\r\n// Filter for any browsers opening a URL in their process command line or look directly at the remote url contacted\r\n| where InitiatingProcessCommandLine contains \"{FinalLink}\" or RemoteUrl contains \"{FinalLink}\"\r\n// Filter for successful connections\r\n| where ActionType == \"ConnectionSuccess\"\r\n// Only show non system/service related connections\r\n| where isnotempty(InitiatingProcessAccountUpn)\r\n| where InitiatingProcessAccountUpn !in (initial_click)",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 15"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Identify the processes responsible for opening this link\r\n\r\nGiven that the initial link will either originate from within email or from within a malicious file, we can rely on the fact that this will be the link that is shown for any processes launching for a connection. WHether this is within the email app or from within an office document"
+      },
+      "name": "text - 16"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "ac336cd2-ad1c-4c87-beea-6c7bdb0c2e5f",
+            "version": "KqlParameterItem/1.0",
+            "name": "InvestigationTimeline",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 300000
+                },
+                {
+                  "durationMs": 900000
+                },
+                {
+                  "durationMs": 1800000
+                },
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 259200000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2419200000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 5184000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ]
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": {
+              "durationMs": 604800000
+            }
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - 18"
+    },
+    {to
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "DeviceProcessEvents\r\n| where Timestamp {InvestigationTimeline}\r\n| where InitiatingProcessCommandLine contains \"microsoft.com\" or ProcessCommandLine contains \"microsoft.com\"",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 17"
+    }
+  ],
+  "fallbackResourceIds": [
+    "/subscriptions/a887b111-eb5e-4924-ac9e-456628a6cfe8/resourcegroups/sds-ukw-p-rg-mssentinel/providers/microsoft.operationalinsights/workspaces/sdsukwplasentinel"
+  ],
+  "fromTemplateId": "sentinel-UserWorkbook",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
