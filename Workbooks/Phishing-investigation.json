@@ -23,7 +23,7 @@
             "timeContext": {
               "durationMs": 86400000
             },
-            "value": "donna.mcwilliam@sds.co.uk"
+            "value": "username"
           }
         ],
         "style": "pills",
@@ -75,7 +75,7 @@
             "timeContext": {
               "durationMs": 86400000
             },
-            "value": "00a87ce9-4e47-b18b-4224-96c55b31a956"
+            "value": "sessionid"
           }
         ],
         "style": "pills",
