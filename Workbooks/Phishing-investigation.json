@@ -1,0 +1,279 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Suspicious Inbox Manipulation Rules Playbook"
+      },
+      "name": "text - 2"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "d039a6f1-a41f-479d-b010-9f2218c431ae",
+            "version": "KqlParameterItem/1.0",
+            "name": "UserList",
+            "type": 1,
+            "description": "Pasting a new-line separated list of compromised users for checking inbox setup",
+            "isRequired": true,
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": "donna.mcwilliam@sds.co.uk"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - 2"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "\nCloudAppEvents\n| where ActionType contains \"InboxRule\"\n| where RawEventData.UserId contains \"{UserList}\"\n| extend\n    User = tostring(RawEventData.UserId),\n    Activity = parse_json(ActivityObjects)\n| mv-expand ActivityObject = Activity\n| extend\n    ObjectType = tostring(ActivityObject.Type),\n    ObjectRole = tostring(ActivityObject.Role),\n    ObjectName = tostring(ActivityObject.Name),\n    ObjectValue = tostring(ActivityObject.Value),\n    ServiceObjectType = tostring(ActivityObject.ServiceObjectType)\n| summarize\n    RuleAction = take_anyif(ObjectName, ObjectType == \"Task\"),\n    RuleName = take_anyif(ObjectValue, ObjectName == \"Identity\"),\n    From = take_anyif(ObjectValue, ObjectName == \"From\"),\n    SubjectContains = take_anyif(ObjectValue, ObjectName == \"SubjectContainsWords\"),\n    ExceptIfSubjectOrBodyContains = take_anyif(\n        ObjectValue,\n        ObjectName == \"ExceptIfSubjectOrBodyContainsWords\"\n    ),\n    StopProcessingRules = take_anyif(\n        ObjectValue,\n        ObjectName == \"StopProcessingRules\"\n    ),\n    ForwardTo = take_anyif(ObjectValue, ObjectName == \"ForwardTo\"),\n    RedirectTo = take_anyif(ObjectValue, ObjectName == \"RedirectTo\"),\n    MoveToFolder = take_anyif(ObjectValue, ObjectName == \"MoveToFolder\"),\n    DeleteMessage = take_anyif(ObjectValue, ObjectName == \"DeleteMessage\"),\n    MarkAsRead = take_anyif(ObjectValue, ObjectName == \"MarkAsRead\"),\n    Actor = take_anyif(\n        ObjectName,\n        ObjectType == \"User\" and ObjectRole == \"Actor\"\n    )\n    by TimeGenerated, User, ActionType, ReportId\n| order by TimeGenerated desc\n",
+        "size": 1,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 2"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Inbox rules that are considered suspicious "
+      },
+      "name": "text - 3"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "CloudAppEvents\r\n| where ActionType in (\"New-InboxRule\", \"Set-InboxRule\", \"Remove-InboxRule\")\r\n| where RawEventData.UserId contains \"{UserList}\"\r\n| extend\r\n    User = tostring(RawEventData.UserId),\r\n    Activity = parse_json(ActivityObjects),\r\n    Session = tostring(RawEventData.SessionId)\r\n| mv-expand ActivityObject = Activity\r\n| extend\r\n    ObjectType = tostring(ActivityObject.Type),\r\n    ObjectRole = tostring(ActivityObject.Role),\r\n    ObjectName = tostring(ActivityObject.Name),\r\n    ObjectValue = tostring(ActivityObject.Value),\r\n    ServiceObjectType = tostring(ActivityObject.ServiceObjectType)\r\n| summarize\r\n    RuleAction = take_anyif(ObjectName, ObjectType == \"Task\"),\r\n    RuleName = take_anyif(ObjectValue, ObjectName == \"Identity\"),\r\n    From = take_anyif(ObjectValue, ObjectName == \"From\"),\r\n    SubjectContains = take_anyif(ObjectValue, ObjectName == \"SubjectContainsWords\"),\r\n    ExceptIfSubjectOrBodyContains = take_anyif(\r\n        ObjectValue,\r\n        ObjectName == \"ExceptIfSubjectOrBodyContainsWords\"\r\n    ),\r\n    StopProcessingRules = take_anyif(\r\n        ObjectValue,\r\n        ObjectName == \"StopProcessingRules\"\r\n    ),\r\n    ForwardTo = take_anyif(ObjectValue, ObjectName == \"ForwardTo\"),\r\n    RedirectTo = take_anyif(ObjectValue, ObjectName == \"RedirectTo\"),\r\n    MoveToFolder = take_anyif(ObjectValue, ObjectName == \"MoveToFolder\"),\r\n    DeleteMessage = take_anyif(ObjectValue, ObjectName == \"DeleteMessage\"),\r\n    MarkAsRead = take_anyif(ObjectValue, ObjectName == \"MarkAsRead\"),\r\n    Actor = take_anyif(\r\n        ObjectName,\r\n        ObjectType == \"User\" and ObjectRole == \"Actor\"\r\n    )\r\n    by TimeGenerated, User, ActionType, Session\r\n// Detection/filtering happens AFTER normalization\r\n| where\r\n    isnotempty(ForwardTo)\r\n    or isnotempty(RedirectTo)\r\n    or isnotempty(DeleteMessage)\r\n    or isnotempty(MoveToFolder)\r\n    or isnotempty(MarkAsRead)\r\n| project\r\n    TimeGenerated,\r\n    User,\r\n    Session,\r\n    ActionType,\r\n    RuleName,\r\n    From,\r\n    SubjectContains,\r\n    ForwardTo,\r\n    RedirectTo,\r\n    MoveToFolder,\r\n    DeleteMessage,\r\n    MarkAsRead,\r\n    StopProcessingRules,\r\n    Actor\r\n| order by TimeGenerated desc\r\n",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 4"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "a4e1e3f1-98fb-4da0-982c-73ca99ccdcd1",
+            "version": "KqlParameterItem/1.0",
+            "name": "SessionId",
+            "type": 1,
+            "isRequired": true,
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": "00a87ce9-4e47-b18b-4224-96c55b31a956"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - 7"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Track the Sign-ins for that user given the now compromised SessionID\r\n"
+      },
+      "name": "text - 5"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "SigninLogs\r\n| where SessionId contains \"{SessionId}\"\r\n",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 6"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Identify network events of interest just before sign-in of the compromised session for a known managed device"
+      },
+      "name": "text - 20"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "//Given a known compromised session, look for any occurences where the initial successful sign-in involves a specific managed device\r\n// Look back to ensure that any network traffic existing aroudn time of sign-in is identified\r\nSigninLogs\r\n| where TimeGenerated > ago (90d)\r\n| where ResultType == 0\r\n| where SessionId contains \"{SessionId}\"\r\n| where DeviceDetail.isManaged == \"true\"\r\n| extend devId = tostring(DeviceDetail.deviceId) // Ensure lowercase 'deviceid'\r\n| summarize arg_min(TimeGenerated, UserPrincipalName, devId) by SessionId\r\n| project SessionId, Sign_in = TimeGenerated, UserPrincipalName, devId\r\n| join kind=inner (\r\n    DeviceNetworkEvents\r\n    | where TimeGenerated > ago(90d)\r\n    | project NetworkEventTime = TimeGenerated, RemoteUrl, DeviceId\r\n) on $left.devId == $right.DeviceId\r\n| where NetworkEventTime between ((Sign_in - 30m) .. Sign_in)\r\n",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 21"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Identify network events of interest just before sign-in of the compromised session for all users devices"
+      },
+      "name": "text - 22"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "//Given a scenario where the device is not managed we can simply use the accountupn and time of sign-in for the session, this will reveal all devices\r\nSigninLogs\r\n| where TimeGenerated > ago (90d)\r\n| where ResultType == 0\r\n| where SessionId contains \"{SessionId}\"\r\n| extend devId = tostring(DeviceDetail.deviceId) \r\n| summarize arg_min(TimeGenerated, UserPrincipalName, devId) by SessionId\r\n| project SessionId, Sign_in = TimeGenerated, UserPrincipalName, devId\r\n| join kind=inner (\r\n    DeviceNetworkEvents\r\n    | where TimeGenerated > ago (90d)\r\n    | project NetworkEventTime = TimeGenerated, InitiatingProcessAccountUpn, RemoteUrl, DeviceId, DeviceName\r\n) on $left.UserPrincipalName == $right.InitiatingProcessAccountUpn\r\n| where NetworkEventTime between ((Sign_in - 10m) .. Sign_in)\r\n",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 23"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Track the user activity accross Teams, Sharepoint, Onedrive - Web/Mobile Client\r\n\r\n"
+      },
+      "name": "text - 9"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "\r\n// This filter returns the exact amount of rows returned when searching for string occurence in the rows. This will be used to identify all user activity\r\nCloudAppEvents\r\n| where RawEventData.AppAccessContext.AADSessionId == \"{SessionId}\"\r\n| order by TimeGenerated desc",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "gridSettings": {
+          "rowLimit": 5000
+        }
+      },
+      "name": "query - 8"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Track User Activity across Teams - Web/Mobile Client"
+      },
+      "name": "text - 12"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "CloudAppEvents\r\n| where RawEventData.AppAccessContext.AADSessionId == \"{SessionId}\"\r\n| where Application == \"Microsoft Teams\"",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 13"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Track user activity across sharepoint - Web/Mobile Client"
+      },
+      "name": "text - 14"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "CloudAppEvents\r\n| where RawEventData.AppAccessContext.AADSessionId == \"{SessionId}\"\r\n| where Application == \"Microsoft SharePoint Online\"",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 15"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Track user activity across Onedrive - Web/Mobile Client"
+      },
+      "name": "text - 16"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "CloudAppEvents\r\n| where RawEventData.AppAccessContext.AADSessionId == \"{SessionId}\"\r\n| where Application == \"Microsoft OneDrive for Business\"",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 17"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Track user activity across Exchange - Web/Mobile Client"
+      },
+      "name": "text - 18"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "CloudAppEvents\r\n| where RawEventData.AppAccessContext.AADSessionId == \"{SessionId}\"\r\n| where Application == \"Microsoft Exchange Online\"",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 19"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Track Exchange activity for the user - Desktop"
+      },
+      "name": "text - 14"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "CloudAppEvents\r\n| where RawEventData.SessionId== \"{SessionId}\"\r\n| where Application == \"Microsoft Exchange Online\"",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 11"
+    }
+  ],
+  "fallbackResourceIds": [
+    "/subscriptions/a887b111-eb5e-4924-ac9e-456628a6cfe8/resourcegroups/sds-ukw-p-rg-mssentinel/providers/microsoft.operationalinsights/workspaces/sdsukwplasentinel"
+  ],
+  "fromTemplateId": "sentinel-UserWorkbook",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
