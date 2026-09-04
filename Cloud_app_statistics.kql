@@ -1,0 +1,95 @@
+// Searching for all cloud apps connector events fed into sentinel - Currently no access or session policies live to populate the table
+CloudAppEvents
+| where TimeGenerated > ago(90d)
+| distinct AuditSource
+ 
+ 
+// Show all desktop client related cloud app access
+CloudAppEvents
+| where TimeGenerated > ago(90d)
+| where RawEventData.SessionId == "00a87ce9-4e47-b18b-4224-96c55b31a956"
+| distinct Application
+ 
+ 
+// Show all mobile/Web Client related cloud app access
+CloudAppEvents
+| where TimeGenerated > ago(90d)
+| where RawEventData.AppAccessContext.AADSessionId == "00a87ce9-4e47-b18b-4224-96c55b31a956"
+| distinct Application
+ 
+// Demonstrate the applications being used by desktop
+CloudAppEvents
+| where TimeGenerated > ago(90d)
+| where isnotempty(RawEventData.SessionId)
+| summarize count() by Application
+ 
+// Demonstrate the applications being used by Mobile/ web Client
+CloudAppEvents
+| where TimeGenerated > ago(90d)
+| where isnotempty(RawEventData.AppAccessContext.AADSessionId)
+| summarize count() by Application
+ 
+ 
+//Demonstrate the applications being used programatically
+CloudAppEvents
+| where TimeGenerated > ago(90d)
+| where isempty(RawEventData.AppAccessContext.AADSessionId) and isempty(RawEventData.SessionId)
+| summarize count() by Application
+ 
+// All distinct observed operations for all web/mobile applications
+CloudAppEvents
+| where TimeGenerated > ago(90d)
+| where isnotempty(RawEventData.AppAccessContext.AADSessionId)
+| summarize make_set(ActionType) by Application
+ 
+ 
+//All distinct observed operations for all Desktop applications
+CloudAppEvents
+| where TimeGenerated > ago(90d)
+| where isnotempty(RawEventData.AppAccessContext.AADSessionId)
+| summarize make_set(ActionType) by Application
+ 
+// All distinct observed operations done programtically
+CloudAppEvents
+| where TimeGenerated > ago(90d)
+| where isempty(RawEventData.AppAccessContext.AADSessionId) and isempty(RawEventData.SessionId)
+| summarize make_set(ActionType) by Application
+ 
+// Demonstrate usage of all of these operations on web/mobile client to determine their usability and therefore necessity in the environment
+CloudAppEvents
+| where TimeGenerated > ago(90d)
+| where isnotempty(RawEventData.AppAccessContext.AADSessionId)
+// Step 1: Get the raw count for every combination of Application and ActionType
+| summarize ActionCount = count() by Application, ActionType
+| order by ActionCount desc
+// Step 2: Pack them into an object and aggregate them into a single set per Application
+| summarize ActionSetWithCounts = make_set(pack('ActionType', ActionType, 'Count', ActionCount)) by Application
+ 
+// Backup Query used to validate each action type with their associated application
+CloudAppEvents
+| where TimeGenerated > ago(90d)
+| where isnotempty(RawEventData.AppAccessContext.AADSessionId)
+| where ActionType contains "FileAccessedExtended" and Application contains "sharepoint"
+| count
+ 
+// Demonstrate usage of all of these operations on Desktop client to determine their usability and therefore necessity in the environment
+CloudAppEvents
+| where TimeGenerated > ago(90d)
+| where isnotempty(RawEventData.SessionId)
+// Step 1: Get the raw count for every combination of Application and ActionType
+| summarize ActionCount = count() by Application, ActionType
+| order by ActionCount desc
+// Step 2: Pack them into an object and aggregate them into a single set per Application
+| summarize ActionSetWithCounts = make_set(pack('ActionType', ActionType, 'Count', ActionCount)) by Application
+ 
+// Demonstrate usage of all of these operations on Desktop client to determine their usability and therefore necessity in the environment
+CloudAppEvents
+| where TimeGenerated > ago(90d)
+| where isempty(RawEventData.AppAccessContext.AADSessionId) and isempty(RawEventData.SessionId)
+// Step 1: Get the raw count for every combination of Application and ActionType
+| summarize ActionCount = count() by Application, ActionType
+| order by ActionCount desc
+// Step 2: Pack them into an object and aggregate them into a single set per Application
+| summarize ActionSetWithCounts = make_set(pack('ActionType', ActionType, 'Count', ActionCount)) by Application
+ 
+//Focus on categorising permissions. Begin with discerning between control and data plane actions, once this is established, begin putting each operation into bins of related operations such as File, Permissions, Site, Sensitivity
