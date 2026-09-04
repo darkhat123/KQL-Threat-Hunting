@@ -7,14 +7,14 @@ CloudAppEvents
 // Show all desktop client related cloud app access
 CloudAppEvents
 | where TimeGenerated > ago(90d)
-| where RawEventData.SessionId == "00a87ce9-4e47-b18b-4224-96c55b31a956"
+| where RawEventData.SessionId == "session-id"
 | distinct Application
  
  
 // Show all mobile/Web Client related cloud app access
 CloudAppEvents
 | where TimeGenerated > ago(90d)
-| where RawEventData.AppAccessContext.AADSessionId == "00a87ce9-4e47-b18b-4224-96c55b31a956"
+| where RawEventData.AppAccessContext.AADSessionId == "sessionid"
 | distinct Application
  
 // Demonstrate the applications being used by desktop
