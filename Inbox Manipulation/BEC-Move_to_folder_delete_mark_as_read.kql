@@ -1,0 +1,19 @@
+// Rules for finding inbox rules configured to route emails relating to business email compromise, common tactics are to move to folder to prevent notification and optionally delete
+CloudAppEvents
+| where Timestamp > ago(7d) // Adjust time window as needed
+| where Application == "Microsoft Exchange Online"
+| where ActionType in ("New-InboxRule", "Set-InboxRule")
+| extend ParametersJson = parse_json(RawEventData.Parameters)
+| mv-expand ParametersJson
+| extend ParameterName = tostring(ParametersJson.Name),
+         ParameterValue = tostring(ParametersJson.Value)
+| where ParameterName in ("MoveToFolder", "MarkAsRead", "DeleteMessage", "SubjectOrBodyContainsWords")
+| summarize 
+    MoveToFolderTarget = take_anyif(ParameterValue, ParameterName == "MoveToFolder"),
+    MarkAsReadStatus = take_anyif(ParameterValue, ParameterName == "MarkAsRead"),
+    DeleteMessageStatus = take_anyif(ParameterValue, ParameterName == "DeleteMessage"),
+    Subjectorbodycontains = take_anyif(ParameterValue, ParameterName == "SubjectOrBodyContainsWords")
+    by Timestamp, AccountDisplayName, ActionType, IPAddress, Location = strcat(CountryCode, " - ", ISP), ReportId
+| where MarkAsReadStatus contains "True" or DeleteMessageStatus contains "True"
+| where MoveToFolderTarget has_any ("Archive", "Conversation History", "RSS")
+| order by Timestamp desc
