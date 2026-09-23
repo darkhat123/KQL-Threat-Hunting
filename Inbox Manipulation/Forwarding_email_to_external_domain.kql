@@ -1,0 +1,20 @@
+// Rules for finding inbox rules configured to route emails relating to business email compromise, this will identify any mailbox rules with atleast one risk alongside forwarding to a user, can be further refined by creating acceptable forwarding list
+CloudAppEvents
+| where Timestamp > ago(7d) // Adjust time window as needed
+| where Application == "Microsoft Exchange Online"
+| where ActionType in ("New-InboxRule", "Set-InboxRule")
+| extend ParametersJson = parse_json(RawEventData.Parameters)
+| mv-expand ParametersJson
+| extend ParameterName = tostring(ParametersJson.Name),
+         ParameterValue = tostring(ParametersJson.Value)
+| where ParameterName in ("MoveToFolder", "MarkAsRead", "DeleteMessage", "SubjectOrBodyContainsWords", "ForwardTo")
+| summarize 
+    MoveToFolderTarget = take_anyif(ParameterValue, ParameterName == "MoveToFolder"),
+    MarkAsReadStatus = take_anyif(ParameterValue, ParameterName == "MarkAsRead"),
+    DeleteMessageStatus = take_anyif(ParameterValue, ParameterName == "DeleteMessage"),
+    Subjectorbodycontains = take_anyif(ParameterValue, ParameterName == "SubjectOrBodyContainsWords"),
+    ForwardTo = take_anyif(ParameterValue, ParameterName == "ForwardTo")
+    by Timestamp, AccountDisplayName, ActionType, IPAddress, Location = strcat(CountryCode, " - ", ISP), ReportId
+| where MarkAsReadStatus == "True" or DeleteMessageStatus =="True" or isnotempty(MoveToFolderTarget)
+| where isnotempty(ForwardTo)
+| order by Timestamp desc
