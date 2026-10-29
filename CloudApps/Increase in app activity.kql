@@ -1,0 +1,15 @@
+CloudAppEvents
+| where OAuthAppId == "f839e88f-d221-4a91-9ab4-b5eb4932a435"
+| where RawEventData.Workload == "Exchange"
+| where ActionType == "MailItemsAccessed" or ActionType == "Send"
+| where Timestamp between (datetime("2026-09-29 00:00:00Z")..30d)
+| extend tostring(RawEventData.Id)
+| summarize arg_max(Timestamp, *) by RawEventData_Id
+| mv-expand RawEventData.Folders
+| mv-expand RawEventData_Folders.FolderItems
+| extend InternetMessageId = iff (isempty(RawEventData_Folders_FolderItems.InternetMessageId), RawEventData.Item.InternetMessageId, tostring(RawEventData_Folders_FolderItems.InternetMessageId))
+| sort by Timestamp, InternetMessageId
+| limit 2000
+| join kind = inner EmailEvents on InternetMessageId
+| project Timestamp, ActionType, Application, SenderFromAddress, Subject, RecipientEmailAddress
+| summarize arg_max(Timestamp, *) by Subject
