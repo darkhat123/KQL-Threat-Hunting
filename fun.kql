@@ -22,3 +22,19 @@ print
 //fibonacci sequence
 range n from 0 to 100 step 1
 | extend fibonacci = tolong(round((pow((1 + sqrt(5)) / 2, n) - pow((1 - sqrt(5)) / 2, n)) / sqrt(5)))
+
+//manual IP search 
+let one = toint(1);
+let two = toint(2);
+let three = toint(3);
+let four = toint(4);
+let five = toint(5);
+let six = toint(6);
+let seven = toint(7);
+let eight = toint(8);
+let nine = toint(9);
+let zero = toint(0);
+let dot = tostring(".");
+DeviceNetworkEvents
+| where LocalIP == strcat(one, nine, two, dot, one, six, eight, dot, one, dot, one)
+| take one
