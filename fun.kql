@@ -38,3 +38,20 @@ let dot = tostring(".");
 DeviceNetworkEvents
 | where LocalIP == strcat(one, nine, two, dot, one, six, eight, dot, one, dot, one)
 | take one
+
+//binary message decoder 
+let message = "01101000 01101111 01110010 01110011 01100101";
+print Binary = message
+| mv-expand with_itemindex=Position Byte = split(Binary, " ")
+| extend Decimal = 
+    toint(substring(Byte, 0, 1)) * 128 +
+    toint(substring(Byte, 1, 1)) * 64 +
+    toint(substring(Byte, 2, 1)) * 32 +
+    toint(substring(Byte, 3, 1)) * 16 +
+    toint(substring(Byte, 4, 1)) * 8 +
+    toint(substring(Byte, 5, 1)) * 4 +
+    toint(substring(Byte, 6, 1)) * 2 +
+    toint(substring(Byte, 7, 1))
+| order by Position asc
+| summarize Characters = make_list(Decimal)
+| project Message = unicode_codepoints_to_string(Characters)
